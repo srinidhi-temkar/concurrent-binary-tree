@@ -10,7 +10,7 @@ vector<int> bt;
 //  /   \     / 
 // 5    14  21
 
-void printLevelOrderTraversal(vector<int> &bt) {
+void bt_level_order_traversal() {
     if(bt.size() == 0) {
         cout << "Binary tree is empty!" << endl;
         return;
@@ -54,21 +54,21 @@ int main() {
     bt_insert(5);
     bt_insert(14);
     bt_insert(21);
-    printLevelOrderTraversal(bt); 
+    bt_level_order_traversal(); 
     bt_delete(9);
-    printLevelOrderTraversal(bt);
+    bt_level_order_traversal();
     bt_delete(100);
     bt_delete(10);
-    printLevelOrderTraversal(bt);
+    bt_level_order_traversal();
     bt_delete(9);
-    printLevelOrderTraversal(bt);
+    bt_level_order_traversal();
     bt_delete(7);
-    printLevelOrderTraversal(bt);
+    bt_level_order_traversal();
     bt_delete(5);
-    printLevelOrderTraversal(bt);
+    bt_level_order_traversal();
     bt_delete(14);
-    printLevelOrderTraversal(bt);
+    bt_level_order_traversal();
     bt_delete(21);
-    printLevelOrderTraversal(bt);
+    bt_level_order_traversal();
     bt_delete(21);
 }
