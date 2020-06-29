@@ -11,7 +11,11 @@ vector<int> bt;
 // 5    14  21
 
 void printLevelOrderTraversal(vector<int> &bt) {
-    cout << "Level order traversal of the binary tree : " << endl;
+    if(bt.size() == 0) {
+        cout << "Binary tree is empty!" << endl;
+        return;
+    }
+    cout << "Level order traversal of the binary tree : ";
     for(int x : bt) {
         cout << x << " ";
     }
@@ -19,16 +23,28 @@ void printLevelOrderTraversal(vector<int> &bt) {
 }
 
 void bt_insert(int ele) {
+    cout << "Inserted " << ele << " at level " << (int) log2(bt.size()+1)+1 << endl;
     bt.push_back(ele);
 }
 
 void bt_delete(int ele) {
+    if(bt.size() == 0) {
+        cout << "Binary tree is empty!" << endl;
+        return;
+    }
     for(vector<int>::iterator i = bt.begin(); i != bt.end(); i++) {
         if(*i == ele) {
-            *i = bt.back();
+            if(i != bt.end()-1) {
+                *i = bt.back();
+                cout << "Deleted " << ele << " at level " << (int) log2(i-bt.begin()+1)+1 << " and replaced it with " << bt.back() << endl;
+            } else {
+                cout << "Deleted " << ele << " at level " << (int) log2(i-bt.begin()+1)+1 << endl;
+            }
             bt.pop_back();
+            return;
         }
     }
+    cout << ele << " not found in the binary tree!" << endl;
 }
 
 int main() {
@@ -38,7 +54,21 @@ int main() {
     bt_insert(5);
     bt_insert(14);
     bt_insert(21);
-    printLevelOrderTraversal(bt);    
+    printLevelOrderTraversal(bt); 
     bt_delete(9);
-    printLevelOrderTraversal(bt);    
+    printLevelOrderTraversal(bt);
+    bt_delete(100);
+    bt_delete(10);
+    printLevelOrderTraversal(bt);
+    bt_delete(9);
+    printLevelOrderTraversal(bt);
+    bt_delete(7);
+    printLevelOrderTraversal(bt);
+    bt_delete(5);
+    printLevelOrderTraversal(bt);
+    bt_delete(14);
+    printLevelOrderTraversal(bt);
+    bt_delete(21);
+    printLevelOrderTraversal(bt);
+    bt_delete(21);
 }
