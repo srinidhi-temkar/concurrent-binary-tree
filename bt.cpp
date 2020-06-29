@@ -47,6 +47,15 @@ void bt_delete(int ele) {
     cout << ele << " not found in the binary tree!" << endl;
 }
 
+int bt_search(int ele) {
+    for(vector<int>::iterator i = bt.begin(); i != bt.end(); i++) {
+        if(*i == ele) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main() {
     bt_insert(10);
     bt_insert(9);
@@ -58,7 +67,17 @@ int main() {
     bt_delete(9);
     bt_level_order_traversal();
     bt_delete(100);
+    if(bt_search(10)) {
+        cout << 10 << " found" << endl;
+    } else {
+        cout << 10 << " not found" << endl;
+    }
     bt_delete(10);
+    if(bt_search(10)) {
+        cout << 10 << " found" << endl;
+    } else {
+        cout << 10 << " not found" << endl;
+    }
     bt_level_order_traversal();
     bt_delete(9);
     bt_level_order_traversal();
