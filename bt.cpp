@@ -1,194 +1,294 @@
-#include<bits/stdc++.h>
-#include<pthread.h>
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <pthread.h>
 using namespace std;
 
-// Initialising the locks
-pthread_mutex_t s_insert_lock;
-pthread_mutex_t s_delete_lock;
-pthread_mutex_t d_insert_lock;
-pthread_mutex_t d_search_lock;
-pthread_mutex_t i_search_lock;
-pthread_mutex_t i_delete_lock;
+vector<long> bt; // Global vector variable for the binary tree (Array Representation)
 
-vector<int> bt;
+// ReadWrite lock for the binary tree
+pthread_rwlock_t bt_rwlock; 
 
-//        10
-//      /    \
-//     /      \
-//    9        7
-//  /   \     / 
-// 5    14  21
+// Mutex to protect the output buffer while printing the tree 
+// Prevent atomicity violations in bt_level_order_traversal function
+pthread_mutex_t cout_mutex; 
 
-void bt_level_order_traversal() {
-    if(bt.size() == 0) {
-        cout << "Binary tree is empty!" << endl;
-        return;
-    }
-    cout << "Level order traversal of the binary tree : ";
-    for(int x : bt) {
-        cout << x << " ";
-    }
-    cout << endl;
+/*
+ bt_insert has an amortized O(1) time complexity, owing to the array representation.
+*/
+void* bt_insert(void *arg) {
+	// casting the void* argument received during thread creationg to long
+	long value = (long) arg;
+
+	int level, position; // 1-based 
+
+	// Acquiring the write lock 
+	pthread_rwlock_wrlock(&bt_rwlock);
+
+	// Calculating the level and position of the insertion
+	level = (int) log2(bt.size()+1)+1;
+	position = bt.size()+2 - (int) (pow(2, level-1)+0.5);
+
+	// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
+	pthread_mutex_lock(&cout_mutex);
+
+	cout << "Inserted " << value << " at level:" << level << ",position:" << position << endl;
+
+	// Unlocking the cout mutex
+	pthread_mutex_unlock(&cout_mutex);
+	
+	// inserting the new element at the end of the vector
+	bt.push_back(value);
+
+	// Releasing the write lock and exiting the thread
+	pthread_rwlock_unlock(&bt_rwlock);
+	return NULL;
 }
 
-// void bt_insert(int ele) {
-//     //Lock set by the search function
-//     pthread_mutex_lock(&s_insert_lock);
-//     //Lock set by the delete function
-//     pthread_mutex_lock(&d_insert_lock);
-//     cout << "Inserted " << ele << " at level " << (int) log2(bt.size()+1)+1 << endl;
-//     bt.push_back(ele);
-//     pthread_mutex_unlock(&s_insert_lock);
-//     pthread_mutex_unlock(&d_insert_lock);
-// }
+/* 
+ bt_delete deletes the first occurence of a specified value in the binary tree, by replacing
+ its content with the last node's content (if it isn't already the last node).
+ For this to always be the first occurence and to make sure that if the value exists, it is 
+ definitely deleted, the function is made to work on a snapshot of the tree by traversing
+ the tree to find the node only after acquiring the write lock.
+ If the traversal was made using hand-over-hand locking technique, i.e., if the search for the
+ matching node was made without locking the mutex, and the mutex was locked only after finding
+ the node, then it would lead to a logic error if 2 threads were trying to delete 2 different nodes, 
+ with one of them being the last node. See README for details.
+*/
+void* bt_delete(void *arg) {
+	// casting the void* argument received during thread creationg to long
+	long value = (long) arg;
 
-void* bt_insert(void * args) {
-    //Lock set by the search function
-    pthread_mutex_lock(&s_insert_lock);
-    //Lock set by the delete function
-    pthread_mutex_lock(&d_insert_lock);
-    int *ele = (int*)args;
-    cout << "Inserted " << *ele << " at level " << (int) log2(bt.size()+1)+1 << endl;
-    bt.push_back(*ele);
-    pthread_mutex_unlock(&d_insert_lock);
-    pthread_mutex_unlock(&s_insert_lock);
-    return NULL;
+	// Acquiring the read lock
+	pthread_rwlock_rdlock(&bt_rwlock);
+	if(bt.size() == 0) { // checking if the tree is empty
+
+		// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
+		pthread_mutex_lock(&cout_mutex);
+
+		cout << "Delete " << value << ": The binary tree is empty!" << endl;
+
+		// Unlocking the cout mutex
+		pthread_mutex_unlock(&cout_mutex);
+
+		// Releasing the read lock and exiting the thread
+		pthread_rwlock_unlock(&bt_rwlock);
+		return NULL;
+	}
+	// Releasing the read lock to acquire the write lock
+	pthread_rwlock_unlock(&bt_rwlock);
+
+	int level, position; // 1-based
+
+	// Acquiring the write lock
+	pthread_rwlock_wrlock(&bt_rwlock);
+
+	// traversing the binary tree to locate the matching node, if any
+	for(vector<long>::iterator i = bt.begin(); i < bt.end(); i++) { 
+		if(*i == value) {
+
+			// if found, calculating its level and position
+			level = (int) log2(i-bt.begin()+1)+1;
+			position = i-bt.begin()+2 - (int) (pow(2, level-1)+0.5);
+
+			// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
+			pthread_mutex_lock(&cout_mutex);
+
+			cout << "Deleted " << value << " at level:" << level << ",position:" << position;
+			
+			// if the node chosen to be deleted is not already at the end, replacing its content 
+			// with the content of the last node
+			if(i != bt.end()-1) { 
+				*i = bt.back();
+				cout << " and replaced it with " << bt.back() << endl;
+			} else { // node to be deleted is already the last node
+				cout << endl;
+			}
+
+			// Unlocking the cout mutex
+			pthread_mutex_unlock(&cout_mutex);
+
+			// Deleting the last node
+			bt.pop_back();
+
+			// Releasing the write lock and exiting the thread after deletion
+			pthread_rwlock_unlock(&bt_rwlock);
+			return NULL;
+		}
+	} // node to be deleted doesn't exist
+
+	// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree	
+	pthread_mutex_lock(&cout_mutex);
+
+	cout << "Delete " << value << ": Not found in the binary tree!" << endl;
+
+	// Unlocking the cout mutex
+	pthread_mutex_unlock(&cout_mutex);
+
+	// Releasing the write lock and exiting the thread with no modifications done to the tree
+	pthread_rwlock_unlock(&bt_rwlock);
+	return NULL;
 }
 
-void* bt_delete(void* args) {
-    //Lock set by the search function
-    pthread_mutex_lock(&s_delete_lock);
-    //Lock set by the insert function
-    pthread_mutex_lock(&i_delete_lock);
-    int *ele = (int*)args;
-    if(bt.size() == 0) {
-        cout << "Binary tree is empty!" << endl;
-        return NULL;
-    }
-    for(vector<int>::iterator i = bt.begin(); i != bt.end(); i++) {
-        if(*i == *ele) {
-            if(i != bt.end()-1) {
-                *i = bt.back();
-                cout << "Deleted " << *ele << " at level " << (int) log2(i-bt.begin()+1)+1 << " and replaced it with " << bt.back() << endl;
-            } else {
-                cout << "Deleted " << *ele << " at level " << (int) log2(i-bt.begin()+1)+1 << endl;
-            }
-            bt.pop_back();
-            return NULL;
-        }
-    }
-    cout << *ele << " not found in the binary tree!" << endl;
-    pthread_mutex_unlock(&i_delete_lock);
-    pthread_mutex_unlock(&s_delete_lock);
-    return NULL;
+/* 
+ bt_search function is not made to return an int value, but rather print the appropriate
+ message in the function itself. This is done to make sure that the main thread focuses 
+ only on obtaining the input, which unnecessitates the need of joining each new search 
+ thread right after creation. This increases the extent of concurrency as multiple searches
+ can happen at the same time, which may in turn reduce wait time and increase performance.
+*/
+void* bt_search(void *arg) {
+	// casting the void* argument received during thread creationg to long
+	long value = (long) arg;
+	
+	int level, position; // 1-based
+
+	// Acquiring the read lock
+	pthread_rwlock_rdlock(&bt_rwlock);
+	if(bt.size() == 0) { // checking if the tree is empty
+
+		// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
+		pthread_mutex_lock(&cout_mutex);
+
+		cout << "Search " << value << ": The binary tree is empty!" << endl;
+
+		// Unlocking the cout mutex
+		pthread_mutex_unlock(&cout_mutex);
+
+		// Releasing the read lock and exiting the thread
+		pthread_rwlock_unlock(&bt_rwlock);
+		return NULL;
+	}
+
+	// traversing the binary tree to locate the matching node, if any
+	for(vector<long>::iterator i = bt.begin(); i < bt.end(); i++) {
+		if(*i == value) { 
+
+			// if found, calculating its level and position
+			level = (int) log2(i-bt.begin()+1)+1;
+			position = i-bt.begin()+2 - (int) (pow(2, level-1)+0.5);
+
+			// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
+			pthread_mutex_lock(&cout_mutex);
+
+			cout << "Search " << value << ": Found at level:" << level << ",position:" << position << endl;
+
+			// Unlocking the cout mutex
+			pthread_mutex_unlock(&cout_mutex);
+
+			// Releasing the read lock and exiting the thread
+			pthread_rwlock_unlock(&bt_rwlock);
+			return NULL;
+		}
+	}
+
+	// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
+	pthread_mutex_lock(&cout_mutex);
+
+	cout << "Search " << value << ": Not found in the binary tree!" << endl;
+
+	// Unlocking the cout mutex
+	pthread_mutex_unlock(&cout_mutex);
+
+	// Releasing the read lock and exiting the thread
+	pthread_rwlock_unlock(&bt_rwlock);
+	return NULL;
 }
 
-// int bt_search(int ele) {
-//     for(vector<int>::iterator i = bt.begin(); i != bt.end(); i++) {
-//         if(*i == ele) {
-//             return 1;
-//         }
-//     }
-//     return 0;
-// }
+/*
+ Prints the binary tree in a level order fashion. 
+ While traversing the tree, if the tree is not empty, then after each element is 
+ printed, a space is inserted and the cout statement is ended. If cout_mutex 
+ was not used, here and in other functions, then before the next element would be
+ printed, another thread could have ended up printing to the output buffer.
+ (Atomicity violation pitfall)
+*/
+void* bt_level_order_traversal(void *null) {
 
-void* bt_search(void *args)
-{
-    //Lock set by the delete function
-    pthread_mutex_lock(&d_search_lock);
-    //Lock set by the insert function
-    pthread_mutex_lock(&i_search_lock);
-    int *ele = (int*)args;
-    int *result = (int *)malloc(sizeof(int));
-    *result = 0;
+	// Acquiring the read lock
+	pthread_rwlock_rdlock(&bt_rwlock);
 
-    for(vector<int>::iterator i = bt.begin(); i != bt.end(); i++) {
-        if(*i == *ele) {
-            *result = 1;
-        }
-    }
-    pthread_mutex_unlock(&i_search_lock);
-    pthread_mutex_unlock(&d_search_lock);
-    return result;
+	if(bt.size() == 0) { // checking if the tree is empty
+
+		// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
+		pthread_mutex_lock(&cout_mutex);
+
+		cout << "The binary tree is empty!" << endl;
+
+		// Unlocking the cout mutex
+		pthread_mutex_unlock(&cout_mutex);
+
+		// Releasing the read lock and exiting the thread
+		pthread_rwlock_unlock(&bt_rwlock);
+		return NULL;
+	}
+
+	// Locking the cout mutex to prevent any other thread from writing into the buffer 
+	pthread_mutex_lock(&cout_mutex);
+
+	cout << "Level order traversal of the binary tree : ";
+	for(long x : bt) { // Traversing and printing each element of the tree
+		cout << x << " ";
+	}
+	cout << endl;
+
+	// Unlocking the cout mutex
+	pthread_mutex_unlock(&cout_mutex);
+
+	// Releasing the read lock and exiting the thread
+	pthread_rwlock_unlock(&bt_rwlock);
+	return NULL;
 }
-
 
 int main() {
-    // bt_insert(10);
-    // bt_insert(9);
-    // bt_insert(7);
-    // bt_insert(5);
-    // bt_insert(14);
-    // bt_insert(21);
-    // bt_level_order_traversal(); 
-    // bt_delete(9);
-    // bt_level_order_traversal();
-    // bt_delete(100);
-    // if(bt_search(10)) {
-    //     cout << 10 << " found" << endl;
-    // } else {
-    //     cout << 10 << " not found" << endl;
-    // }
-    // bt_delete(10);
-    // if(bt_search(10)) {
-    //     cout << 10 << " found" << endl;
-    // } else {
-    //     cout << 10 << " not found" << endl;
-    // }
-    // bt_level_order_traversal();
-    // bt_delete(9);
-    // bt_level_order_traversal();
-    // bt_delete(7);
-    // bt_level_order_traversal();
-    // bt_delete(5);
-    // bt_level_order_traversal();
-    // bt_delete(14);
-    // bt_level_order_traversal();
-    // bt_delete(21);
-    // bt_level_order_traversal();
-    // bt_delete(21);
-    pthread_t s1,d1, i1;
-    int choice, ele;
-    int *found;
-    while(1)
-    {
-        cin>>choice;
-        switch(choice)
-        {
-            case 1 : cin>>ele;
-                     pthread_mutex_init(&i_delete_lock, NULL);
-                     pthread_mutex_init(&i_search_lock, NULL);
-                     pthread_create(&i1, NULL, bt_insert, &ele);
-                     pthread_join(i1, NULL);
-                     pthread_mutex_destroy(&i_delete_lock);
-                     pthread_mutex_destroy(&i_search_lock);
-                     break;
+	// initialising the locks
+	pthread_rwlock_init(&bt_rwlock, NULL);
+	pthread_mutex_init(&cout_mutex, NULL);
 
-            case 2 : cin>>ele;
-                     pthread_mutex_init(&d_insert_lock, NULL);
-                     pthread_mutex_init(&d_search_lock, NULL);
-                     pthread_create(&d1, NULL, bt_delete, &ele);
-                     pthread_join(d1, NULL);
-                     pthread_mutex_destroy(&d_insert_lock);
-                     pthread_mutex_destroy(&d_search_lock);
-                     break;
+	int num_operations, choice;
+	long value;
 
-            case 3 : cin>>ele;
-                     pthread_mutex_init(&s_insert_lock, NULL);
-                     pthread_mutex_init(&s_delete_lock, NULL);
-                     pthread_create(&s1, NULL, bt_search, &ele);
-                     pthread_join(s1, (void **)&found);
-                     pthread_mutex_destroy(&s_insert_lock);
-                     pthread_mutex_destroy(&s_delete_lock);
-                     cout<<*found;
-                     //cout<<bt_search(ele)<<"\n";
-                     break;
+	cin >> num_operations; // make sure this does not exceed your implementaion's thread limit (usually of the order of thousands)
+	pthread_t threads[num_operations]; // array of threads
 
-            case 4 : bt_level_order_traversal();
-                     break;
+	for(int t=0; t<num_operations; t++) {
+		cin >> choice;
+		switch(choice) {
+			case 1: // insert
+					cin >> value;
+					pthread_create(&threads[t], NULL, bt_insert, (void*) value);
+					break;
 
-            default : exit(0);
-        }
-    }
-    return 0;
+			case 2: // delete
+					cin >> value;
+					pthread_create(&threads[t], NULL, bt_delete, (void*) value);
+					break;
+
+			case 3: // search
+					cin >> value;
+					pthread_create(&threads[t], NULL, bt_search, (void*) value);
+					break;
+
+			case 4: // print in level order fashion
+					pthread_create(&threads[t], NULL, bt_level_order_traversal, NULL);
+					break;
+
+			default: // invalid
+					cout << "Invalid operation code entered" << endl;
+					cout << "Exiting main with code 1" << endl;
+					exit(1);
+		}
+	}
+
+	// Joining all threads to the main thread to make sure all of them have completed execution
+	for(int t=0; t < num_operations; t++) {
+		pthread_join(threads[t], NULL);
+	}
+
+	// Cleaning up
+	pthread_rwlock_destroy(&bt_rwlock);
+	pthread_mutex_destroy(&cout_mutex);
+	pthread_exit(NULL);
+	return 0;
 }
