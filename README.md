@@ -1,6 +1,6 @@
 # Concurrent Binary Tree
 ## Implementation of a concurrent version of a binary tree data structure using the pthread library in c++
-The tree uses an array representation (sequential representation). To allow dynamic changes in the size of the array, c++ std::vector<long> is used to store the binary tree. The tree is protected from concurrency bugs using the pthread using a pthread_rwlock (ReadWrite lock). 
+The tree uses an array representation (sequential representation). To allow dynamic changes in the size of the array, c++ ```std::vector<long>``` is used to store the binary tree. The tree is protected from concurrency bugs using the pthread using a pthread_rwlock (ReadWrite lock). 
 
 This type of lock allows a number of readers or at most one writer at any point in time. The write portion of this lock allows modification of the underlying data (exclusive access) and the read portion of this lock allows for read-only access (shared access).
 
@@ -20,8 +20,11 @@ Eg:
 4   5 6   7
 ```
 Here, 
+
 1 is at level:1, position:1
+
 2 is at level:2, position:1
+
 5 is at level:3, position:2
 
 ## Functions implemented
@@ -43,11 +46,13 @@ Consider the following binary tree:
 ```
 Now, suppose 2 threads are trying to execute the delete function on node 3 and node 7 respectively. Now, if only the read lock was acquired while traversing, then suppose the second thread has reached node 5, and hasn't found 7 yet. Now, if the context switches to the first node and it traverses the tree and finds the node 3, replaces its content with the last node's content (7), and finally deletes the last node, then the thread has completed its execution and exits. When the second thread resumes, it traverses to the next node, 6 which is also the new last node. As there are no more nodes, it exits as well.
 The final binary tree would look like:
+```
      1
    /   \
   2     7
  / \   / 
 4   5 6   
+```
 This presents a logic error as the second thread was unable to delete the node 7 even though it was present at all times in the tree when the thread was being executed.
 
 The function first acquires the read lock before acquiring the write lock to check if the binary tree empty. 
