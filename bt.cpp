@@ -11,7 +11,7 @@ using namespace std;
 // If left commented (recommended and default), the threads are created as soon as each 
 // input is read. This provides a greater control on the sequence of operations. It is usually faster. 
 // Note: In both the cases, the selection of the specific thread to execute is non-deterministic 
-// and left to the kernel.
+// and left to the kernel. Requires re-compilation if changed.
 
 // #define COLLECT_ALL_INPUTS_FIRST
 
@@ -40,13 +40,8 @@ void* bt_insert(void *arg) {
 	level = (int) log2(bt.size()+1)+1;
 	position = bt.size()+2 - (int) (pow(2, level-1)+0.5);
 
-	// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
-	pthread_mutex_lock(&cout_mutex);
-
+	// Aquired the write lock and hence locking of cout mutex is not required
 	cout << "Inserted " << value << " at level:" << level << ",position:" << position << endl;
-
-	// Unlocking the cout mutex
-	pthread_mutex_unlock(&cout_mutex);
 	
 	// inserting the new element at the end of the vector
 	bt.push_back(value);
@@ -103,9 +98,7 @@ void* bt_delete(void *arg) {
 			level = (int) log2(i-bt.begin()+1)+1;
 			position = i-bt.begin()+2 - (int) (pow(2, level-1)+0.5);
 
-			// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
-			pthread_mutex_lock(&cout_mutex);
-
+			// Aquired the write lock and hence locking of cout mutex is not required
 			cout << "Deleted " << value << " at level:" << level << ",position:" << position;
 			
 			// if the node chosen to be deleted is not already at the end, replacing its content 
@@ -117,9 +110,6 @@ void* bt_delete(void *arg) {
 				cout << endl;
 			}
 
-			// Unlocking the cout mutex
-			pthread_mutex_unlock(&cout_mutex);
-
 			// Deleting the last node
 			bt.pop_back();
 
@@ -129,13 +119,8 @@ void* bt_delete(void *arg) {
 		}
 	} // node to be deleted doesn't exist
 
-	// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree	
-	pthread_mutex_lock(&cout_mutex);
-
+	// Aquired the write lock and hence locking of cout mutex is not required
 	cout << "Delete " << value << ": Not found in the binary tree!" << endl;
-
-	// Unlocking the cout mutex
-	pthread_mutex_unlock(&cout_mutex);
 
 	// Releasing the write lock and exiting the thread with no modifications done to the tree
 	pthread_rwlock_unlock(&bt_rwlock);
