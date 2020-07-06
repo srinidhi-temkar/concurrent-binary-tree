@@ -1,6 +1,6 @@
 # Concurrent Binary Tree
-## Implementation of a concurrent version of a binary tree data structure using the pthread library in c++
-The tree uses an array representation (sequential representation). To allow dynamic changes in the size of the array, c++ ```std::vector<long>``` is used to store the binary tree. The tree is protected from concurrency bugs using the pthread using a pthread_rwlock (ReadWrite lock). 
+### Implementation of a concurrent version of a binary tree data structure using the pthread library in c++
+This implementation of a binary tree uses an array representation (sequential representation). To allow dynamic changes in the size of the array, a c++ ```std::vector<long>``` is used to store the binary tree. The tree is protected from concurrency bugs using a pthread_rwlock (ReadWrite lock). 
 
 This type of lock allows a number of readers or at most one writer at any point in time. The write portion of this lock allows modification of the underlying data (exclusive access) and the read portion of this lock allows for read-only access (shared access).
 
@@ -57,13 +57,13 @@ This presents a logic error as the second thread was unable to delete the node 7
 
 The function first acquires the read lock before acquiring the write lock to check if the binary tree empty. 
 
-## bt_search
+### bt_search
 The function checks if the specified node is present in the binary tree. As it only acquires a read lock, multiple searches can happen simultaneously. Also, multiple searches can happen even when the tree is being printed by the next function. But the search thread will have to wait if has to print to the output buffer while another thread is printing the tree. This is ensured by the cout mutex.
 
-## bt_level_order_traversal
+### bt_level_order_traversal
 This function prints the tree in a level order fashion. While writing into the output buffer, it locks the cout mutex to make sure no other read-thread writes into the output buffer while printing. This is done to make sure that there is no atomic violation.
 
-# About test cases
+## About test cases
 * **t1.txt** file consisting of test cases which handle basic operations of the binary tree, this text case file gives importance on reflecting the appropriate working of all the basic operations in binary tree.
 
 * **t2.txt** file consisting of test cases which handle edge cases and reflecting the importance on how the mutex locks handle to prevent writing into the buffer when another read-thread is printing the tree.
@@ -74,7 +74,7 @@ This function prints the tree in a level order fashion. While writing into the o
 
 * **t5.txt** file includes large number of operations performed in random.
 
-# Compiling the code
+## Compiling the code
 * **Compiling**
 
      First select the mode of operation to collect the input from the input buffer. This is to be done by commenting or uncommenting the Macro COLLECT_ALL_INPUTS_FIRST at the top of bt.cpp file.
@@ -88,8 +88,9 @@ This function prints the tree in a level order fashion. While writing into the o
       
 * **Running the executable** using input redirection
 
-      Linux: ./bt < t1.txt 
-      Windows: bt < t1.txt 
+     Linux: ```./bt < t1.txt``` 
+     
+     Windows: ```bt < t1.txt```
  
   **Note** : Replace the t1.txt with t2.txt, t3.txt, t4.txt or t5.txt , to run the corresponding test case file.
 
