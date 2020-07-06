@@ -260,6 +260,7 @@ int main() {
 	pthread_t threads[num_operations]; // array of threads
 	vector<pair<int, long>> inputs;
 
+	// storing all the inputs before thread creation to make it easier to find concurrency bugs, if any
 	for(int i=0; i<num_operations; i++) {
 		cin >> choice;
 		switch(choice) {
