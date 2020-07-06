@@ -12,11 +12,13 @@ The advantages of array-vector representation include lower memory requirements 
 The bt_insert, bt_delete and bt_search functions below print the level and position in that level of specific node in the binary tree.
 Both the level and position follow 1-based indexing.
 Eg: 
+```
      1
    /   \
   2     3
  / \   / \
 4   5 6   7
+```
 Here, 
 1 is at level:1, position:1
 2 is at level:2, position:1
@@ -32,11 +34,13 @@ This function deletes the first occurence of a specified value in the binary tre
 
 If the traversal was made using hand-over-hand locking technique, i.e., if the search for the node to be deleted was made after only acquiring the read lock, then it would lead to a logic error.
 Consider the following binary tree:
+```
      1
    /   \
   2     3
  / \   / \
 4   5 6   7
+```
 Now, suppose 2 threads are trying to execute the delete function on node 3 and node 7 respectively. Now, if only the read lock was acquired while traversing, then suppose the second thread has reached node 5, and hasn't found 7 yet. Now, if the context switches to the first node and it traverses the tree and finds the node 3, replaces its content with the last node's content (7), and finally deletes the last node, then the thread has completed its execution and exits. When the second thread resumes, it traverses to the next node, 6 which is also the new last node. As there are no more nodes, it exits as well.
 The final binary tree would look like:
      1
@@ -68,12 +72,13 @@ This function prints the tree in a level order fashion. While writing into the o
 # Compiling the code
 * **Compiling**
 
-First select the mode of operation to collect the input from the input buffer. This is to be done by commenting or uncommenting the Macro COLLECT_ALL_INPUTS_FIRST at the top of bt.cpp file.
-If left commented (recommended and default), the threads are created as soon as each input is read. This provides a greater control on the sequence of operations. It is usually faster. 
-If uncommented, all the inputs are collected first, stored in a vector and then threads are created based on values in the vector. This is useful for detecting concurrency bugs more easily, but provides lesser control on the sequence of operations. It is usually slower. 
-**Note** In both the cases, the selection of the specific thread to execute is non-deterministic and left to the kernel. Requires re-compilation if changed.
+     First select the mode of operation to collect the input from the input buffer. This is to be done by commenting or uncommenting the Macro COLLECT_ALL_INPUTS_FIRST at the top of bt.cpp file.
+     If left commented (recommended and default), the threads are created as soon as each input is read. This provides a greater control on the sequence of operations. It is usually faster. 
+     If uncommented, all the inputs are collected first, stored in a vector and then threads are created based on values in the vector. This is useful for detecting concurrency bugs more easily, but provides lesser control on the sequence of operations. It is usually slower. 
+     **Note** In both the cases, the selection of the specific thread to execute is non-deterministic and left to the kernel. Requires re-compilation if changed.
 
-Then, execute: 
+     Then, execute: 
+
       g++ -o bin_tree bt.cpp -lpthread
       
 * **Running the executable** using input redirection
