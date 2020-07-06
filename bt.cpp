@@ -7,9 +7,9 @@ using namespace std;
 // Macro to select mode of operation.
 // If uncommented, all the inputs are collected first, stored in a vector and then threads
 // are created based on values in the vector. This is useful for detecting concurrency bugs
-// more easily, but provides lesser control on the sequence of operations. It is slower. 
-// If left commented, the threads are created as soon as each input is read. This provides 
-// a greater control on the sequence of operations. It is faster. 
+// more easily, but provides lesser control on the sequence of operations. It is usually slower. 
+// If left commented (recommended and default), the threads are created as soon as each 
+// input is read. This provides a greater control on the sequence of operations. It is usually faster. 
 // Note: In both the cases, the selection of the specific thread to execute is non-deterministic 
 // and left to the kernel.
 
