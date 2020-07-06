@@ -7,10 +7,11 @@ using namespace std;
 // Macro to select mode of operation.
 // If uncommented, all the inputs are collected first, stored in a vector and then threads
 // are created based on values in the vector. This is useful for detecting concurrency bugs
-// more easily, but provides lesser control on the sequence of operations. Prone to reader 
-// starvation based on rwlock_attr set in the main thread.
+// more easily, but provides lesser control on the sequence of operations. It is slower. 
 // If left commented, the threads are created as soon as each input is read. This provides 
-// a greater control on the sequence of operations.
+// a greater control on the sequence of operations. It is faster. 
+// Note: In both the cases, the selection of the specific thread to execute is non-deterministic 
+// and left to the kernel.
 
 // #define COLLECT_ALL_INPUTS_FIRST
 
