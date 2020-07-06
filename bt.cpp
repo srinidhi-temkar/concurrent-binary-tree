@@ -134,7 +134,7 @@ void* bt_delete(void *arg) {
 /* 
  bt_search function is not made to return an int value, but rather print the appropriate
  message in the function itself. This is done to make sure that the main thread focuses 
- only on obtaining the input, which unnecessitates the need of joining each new search 
+ only on obtaining the inputs, which unnecessitates the need of joining each new search 
  thread right after creation. This increases the extent of concurrency as multiple searches
  can happen at the same time, which may in turn reduce wait time and increase performance.
 */
@@ -258,23 +258,49 @@ int main() {
 
 	cin >> num_operations; // make sure this does not exceed your implementaion's thread limit (usually of the order of thousands)
 	pthread_t threads[num_operations]; // array of threads
+	vector<pair<int, long>> inputs;
 
-	for(int t=0; t<num_operations; t++) {
+	for(int i=0; i<num_operations; i++) {
 		cin >> choice;
 		switch(choice) {
 			case 1: // insert
 					cin >> value;
-					pthread_create(&threads[t], &attr, bt_insert, (void*) value);
+					inputs.push_back(make_pair(choice, value));
 					break;
 
 			case 2: // delete
 					cin >> value;
-					pthread_create(&threads[t], &attr, bt_delete, (void*) value);
+					inputs.push_back(make_pair(choice, value));
 					break;
 
 			case 3: // search
 					cin >> value;
-					pthread_create(&threads[t], &attr, bt_search, (void*) value);
+					inputs.push_back(make_pair(choice, value));
+					break;
+			
+			case 4: // print in level order fashion
+					inputs.push_back(make_pair(choice, 0));
+					break;
+			
+			default: // invalid
+					cout << "Invalid operation code entered" << endl;
+					cout << "Exiting main with code 1" << endl;
+					exit(1);
+		}
+	}
+
+	for(int t=0; t<num_operations; t++) {
+		switch(inputs[t].first) {
+			case 1: // insert
+					pthread_create(&threads[t], &attr, bt_insert, (void*) inputs[t].second);
+					break;
+
+			case 2: // delete
+					pthread_create(&threads[t], &attr, bt_delete, (void*) inputs[t].second);
+					break;
+
+			case 3: // search
+					pthread_create(&threads[t], &attr, bt_search, (void*) inputs[t].second);
 					break;
 
 			case 4: // print in level order fashion
