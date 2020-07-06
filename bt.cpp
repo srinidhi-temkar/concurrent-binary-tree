@@ -4,6 +4,16 @@
 #include <pthread.h>
 using namespace std;
 
+// Macro to select mode of operation.
+// If uncommented, all the inputs are collected first, stored in a vector and then threads
+// are created based on values in the vector. This is useful for detecting concurrency bugs
+// more easily, but provides lesser control on the sequence of operations. Prone to reader 
+// starvation based on rwlock_attr set in the main thread.
+// If left commented, the threads are created as soon as each input is read. This provides 
+// a greater control on the sequence of operations.
+
+// #define COLLECT_ALL_INPUTS_FIRST
+
 vector<long> bt; // Global vector variable for the binary tree (Array Representation)
 
 // ReadWrite lock for the binary tree
@@ -214,7 +224,7 @@ void* bt_level_order_traversal(void *null) {
 		// Locking the cout mutex to prevent writing into the buffer when another read-thread is printing the tree
 		pthread_mutex_lock(&cout_mutex);
 
-		cout << "The binary tree is empty!" << endl;
+		cout << "Print binary tree: The tree is empty!" << endl;
 
 		// Unlocking the cout mutex
 		pthread_mutex_unlock(&cout_mutex);
@@ -242,10 +252,24 @@ void* bt_level_order_traversal(void *null) {
 }
 
 int main() {
-	// initializing the locks
-	pthread_rwlock_init(&bt_rwlock, NULL);
-	pthread_mutex_init(&cout_mutex, NULL);
 
+	// initializing the ReadWrite lock attribute
+	pthread_rwlockattr_t rw_attr;
+	pthread_rwlockattr_init(&rw_attr);
+
+	#ifdef COLLECT_ALL_INPUTS_FIRST
+		// Setting rwlockattr to PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP to prevent writer starvation
+		// Avaliable in most implementations
+		// Can also be set to PTHREAD_RWLOCK_PREFER_READER_NP based on application to prevent reader starvation.
+		// To obtain effects similar to in-order priority, simply UNcomment the macro COLLECT_ALL_INPUTS_FIRST,
+		// which will create the thread as soon as it reads the input
+		pthread_rwlockattr_setkind_np(&rw_attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+	#endif
+	
+	// initializing the locks
+	pthread_rwlock_init(&bt_rwlock, &rw_attr);
+	pthread_mutex_init(&cout_mutex, NULL);
+	
 	int num_operations, choice;
 	long value;
 
@@ -258,50 +282,77 @@ int main() {
 
 	cin >> num_operations; // make sure this does not exceed your implementaion's thread limit (usually of the order of thousands)
 	pthread_t threads[num_operations]; // array of threads
-	vector<pair<int, long>> inputs;
 
-	// storing all the inputs before thread creation to make it easier to find concurrency bugs, if any
-	for(int i=0; i<num_operations; i++) {
-		cin >> choice;
-		switch(choice) {
-			case 1: // insert
-					cin >> value;
-					inputs.push_back(make_pair(choice, value));
-					break;
+	#ifdef COLLECT_ALL_INPUTS_FIRST
+		vector<pair<int, long>> inputs;
 
-			case 2: // delete
-					cin >> value;
-					inputs.push_back(make_pair(choice, value));
-					break;
+		// storing all the inputs before thread creation to make it easier to find concurrency bugs, if any
+		for(int i=0; i<num_operations; i++) {
+			cin >> choice;
+			switch(choice) {
+				case 1: // insert
+						cin >> value;
+						inputs.push_back(make_pair(choice, value));
+						break;
 
-			case 3: // search
-					cin >> value;
-					inputs.push_back(make_pair(choice, value));
-					break;
-			
-			case 4: // print in level order fashion
-					inputs.push_back(make_pair(choice, 0));
-					break;
-			
-			default: // invalid
-					cout << "Invalid operation code entered" << endl;
-					cout << "Exiting main with code 1" << endl;
-					exit(1);
+				case 2: // delete
+						cin >> value;
+						inputs.push_back(make_pair(choice, value));
+						break;
+
+				case 3: // search
+						cin >> value;
+						inputs.push_back(make_pair(choice, value));
+						break;
+				
+				case 4: // print in level order fashion
+						inputs.push_back(make_pair(choice, 0));
+						break;
+				
+				default: // invalid
+						cout << "Invalid operation code entered" << endl;
+						cout << "Exiting main with code 1" << endl;
+						exit(1);
+			}
 		}
-	}
+	#endif
 
 	for(int t=0; t<num_operations; t++) {
-		switch(inputs[t].first) {
+		#ifdef COLLECT_ALL_INPUTS_FIRST
+			switch(inputs[t].first) {
+		#endif
+		#ifndef COLLECT_ALL_INPUTS_FIRST
+			cin >> choice;
+			switch(choice) {
+		#endif
 			case 1: // insert
-					pthread_create(&threads[t], &attr, bt_insert, (void*) inputs[t].second);
+					#ifdef COLLECT_ALL_INPUTS_FIRST
+						pthread_create(&threads[t], &attr, bt_insert, (void*) inputs[t].second);
+					#endif
+					#ifndef COLLECT_ALL_INPUTS_FIRST
+						cin >> value;
+						pthread_create(&threads[t], &attr, bt_insert, (void*) value);
+					#endif
 					break;
 
 			case 2: // delete
-					pthread_create(&threads[t], &attr, bt_delete, (void*) inputs[t].second);
+					#ifdef COLLECT_ALL_INPUTS_FIRST
+						pthread_create(&threads[t], &attr, bt_delete, (void*) inputs[t].second);
+					#endif
+					#ifndef COLLECT_ALL_INPUTS_FIRST
+						cin >> value;
+						pthread_create(&threads[t], &attr, bt_delete, (void*) value);
+					#endif
 					break;
 
 			case 3: // search
-					pthread_create(&threads[t], &attr, bt_search, (void*) inputs[t].second);
+					#ifdef COLLECT_ALL_INPUTS_FIRST
+						pthread_create(&threads[t], &attr, bt_search, (void*) inputs[t].second);
+					#endif
+					#ifndef COLLECT_ALL_INPUTS_FIRST
+						cin >> value;
+						pthread_create(&threads[t], &attr, bt_search, (void*) value);
+					#endif
 					break;
 
 			case 4: // print in level order fashion
@@ -321,6 +372,7 @@ int main() {
 	}
 
 	// Cleaning up
+	pthread_rwlockattr_destroy(&rw_attr);
 	pthread_attr_destroy(&attr);
 	pthread_rwlock_destroy(&bt_rwlock);
 	pthread_mutex_destroy(&cout_mutex);
