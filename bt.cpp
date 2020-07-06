@@ -242,12 +242,19 @@ void* bt_level_order_traversal(void *null) {
 }
 
 int main() {
-	// initialising the locks
+	// initializing the locks
 	pthread_rwlock_init(&bt_rwlock, NULL);
 	pthread_mutex_init(&cout_mutex, NULL);
 
 	int num_operations, choice;
 	long value;
+
+	// initializing the pthread attribute attr
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+
+	// explicitly setting the detachstate for thread creation to joinable as not all implementaions create joinable threads by default
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
 	cin >> num_operations; // make sure this does not exceed your implementaion's thread limit (usually of the order of thousands)
 	pthread_t threads[num_operations]; // array of threads
@@ -257,21 +264,21 @@ int main() {
 		switch(choice) {
 			case 1: // insert
 					cin >> value;
-					pthread_create(&threads[t], NULL, bt_insert, (void*) value);
+					pthread_create(&threads[t], &attr, bt_insert, (void*) value);
 					break;
 
 			case 2: // delete
 					cin >> value;
-					pthread_create(&threads[t], NULL, bt_delete, (void*) value);
+					pthread_create(&threads[t], &attr, bt_delete, (void*) value);
 					break;
 
 			case 3: // search
 					cin >> value;
-					pthread_create(&threads[t], NULL, bt_search, (void*) value);
+					pthread_create(&threads[t], &attr, bt_search, (void*) value);
 					break;
 
 			case 4: // print in level order fashion
-					pthread_create(&threads[t], NULL, bt_level_order_traversal, NULL);
+					pthread_create(&threads[t], &attr, bt_level_order_traversal, NULL);
 					break;
 
 			default: // invalid
@@ -287,6 +294,7 @@ int main() {
 	}
 
 	// Cleaning up
+	pthread_attr_destroy(&attr);
 	pthread_rwlock_destroy(&bt_rwlock);
 	pthread_mutex_destroy(&cout_mutex);
 	pthread_exit(NULL);
