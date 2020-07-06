@@ -88,8 +88,8 @@ This function prints the tree in a level order fashion. While writing into the o
       
 * **Running the executable** using input redirection
 
-      ./bt < t1.txt (linux)
-	  bt < t1.txt (windows)
+      Linux: ./bt < t1.txt 
+      Windows: bt < t1.txt 
  
   **Note** : Replace the t1.txt with t2.txt, t3.txt, t4.txt or t5.txt , to run the corresponding test case file.
 
