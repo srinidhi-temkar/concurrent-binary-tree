@@ -88,14 +88,8 @@ This function prints the tree in a level order fashion. While writing into the o
       
 * **Running the executable** using input redirection
 
-     Linux: ```./bt < t1.txt``` 
-     
-     Windows: ```bt < t1.txt```
+     ```./bt < t1.txt```      
  
   **Note** : Replace the t1.txt with t2.txt, t3.txt, t4.txt or t5.txt , to run the corresponding test case file.
 
-Tested successfully on 
-
-Windows: g++ (MinGW.org GCC-8.2.0-5) 8.2.0 
-
-Ubuntu: g++ (Ubuntu 9.3.0-10ubuntu2) 9.3.0
+Tested successfully on: g++ (Ubuntu 9.3.0-10ubuntu2) 9.3.0
