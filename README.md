@@ -27,7 +27,7 @@ Here,
 
 5 is at level:3, position:2
 
-## Functions implemented
+## Functions Implemented
 ### bt_insert
 As the binary tree is implemented using a vector, insertion into the tree has an amortized O(1) time complexity. If a dynamic node representation was used, then achieving a constant time complexity would be slightly harder as it would require a pointer to the last node at all times, which means insertion and deletion operations should keep updating the last node pointer.
 It prints the level and the position in that level at which the given node is inserted. It acquires a write lock to ensure no other writes happen concurrently. 
@@ -63,7 +63,7 @@ The function checks if the specified node is present in the binary tree. As it o
 ### bt_level_order_traversal
 This function prints the tree in a level order fashion. While writing into the output buffer, it locks the cout mutex to make sure no other read-thread writes into the output buffer while printing. This is done to make sure that there is no atomic violation.
 
-## About test cases
+## About Test Cases
 * **t1.txt** file consisting of test cases which handle basic operations of the binary tree, this text case file gives importance on reflecting the appropriate working of all the basic operations in binary tree.
 
 * **t2.txt** file consisting of test cases which handle edge cases and reflecting the importance on how the mutex locks handle to prevent writing into the buffer when another read-thread is printing the tree.
@@ -74,13 +74,16 @@ This function prints the tree in a level order fashion. While writing into the o
 
 * **t5.txt** file includes large number of operations performed in random.
 
-## Compiling the code
-* **Compiling**
+## How to Run
+* **Compiling the code**
 
      First select the mode of operation to collect the input from the input buffer. This is to be done by commenting or uncommenting the Macro COLLECT_ALL_INPUTS_FIRST at the top of bt.cpp file.
+     
      If left commented (recommended and default), the threads are created as soon as each input is read. This provides a greater control on the sequence of operations. It is usually faster. 
+     
      If uncommented, all the inputs are collected first, stored in a vector and then threads are created based on values in the vector. This is useful for detecting concurrency bugs more easily, but provides lesser control on the sequence of operations. It is usually slower. 
-     **Note** In both the cases, the selection of the specific thread to execute is non-deterministic and left to the kernel. Requires re-compilation if changed.
+     
+     **Note:** In both the cases, the selection of the specific thread to execute is non-deterministic and left to the kernel. Requires re-compilation if changed.
 
      Then, execute: 
 
@@ -90,6 +93,6 @@ This function prints the tree in a level order fashion. While writing into the o
 
      ```./bt < t1.txt```      
  
-  **Note** : Replace the t1.txt with t2.txt, t3.txt, t4.txt or t5.txt , to run the corresponding test case file.
+  **Note:** Replace the t1.txt with t2.txt, t3.txt, t4.txt or t5.txt , to run the corresponding test case file.
 
 Tested successfully on: g++ (Ubuntu 9.3.0-10ubuntu2) 9.3.0
